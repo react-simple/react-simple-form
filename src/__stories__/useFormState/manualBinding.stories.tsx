@@ -1,16 +1,19 @@
 import * as React from "react";
 import type { Meta } from '@storybook/react';
 import { LOG_LEVELS, LogLevel, StorybookComponent, logInfo } from "@react-simple/react-simple-util";
-import { getFormFieldValue, setFormFieldValue, useFormState } from "hooks";
-import { Stack } from "@react-simple/react-simple-ui";
-import { SimpleFormDefinition } from "form";
-import { REACT_SIMPLE_FORM } from "data";
 import { FIELDS, RULES } from "@react-simple/react-simple-validation";
+import { Cluster, Stack } from "@react-simple/react-simple-ui";
+import { SimpleFormDefinition, validateSimpleForm } from "form";
+import { REACT_SIMPLE_FORM } from "data";
+import { REACT_SIMPLE_STATE, getGlobalState, setGlobalState } from "@react-simple/react-simple-state";
+import { useSimpleFormState } from "hooks";
 
 const TITLE = "useFormState / Manually binding inputs";
-const DESC = <>Inputs are manually binded by setting value and onBlur/onChange attributes.</>;
+const DESC = <>Inputs are manually bound by setting value and onBlur/onChange attributes.</>;
 
-const FORM_DEF: SimpleFormDefinition = {
+const fullQualifiedName = "forms.manualBinding";
+
+const formDefinition: SimpleFormDefinition = {
   formName: "Test form",
   formSchema: {
     obj1: FIELDS.object({
@@ -18,12 +21,11 @@ const FORM_DEF: SimpleFormDefinition = {
     })
   },
   options: {
-    validationOptions: {
-      namedObjs: {
-        param1: {
-          type: FIELDS.text(),
-          value: "123"
-        }
+    namedObjs: {
+      // define @param1
+      param1: {
+        type: FIELDS.text(),
+        value: "123"
       }
     }
   }
@@ -36,25 +38,44 @@ interface ComponentProps {
 const Component = (props: ComponentProps) => {
   // this is not a state, in real app we only set it once at the beginning
   REACT_SIMPLE_FORM.LOGGING.logLevel = props.logLevel;
-
-  logInfo("[Component]: render", props, REACT_SIMPLE_FORM.LOGGING.logLevel);
-  const formState = useFormState({ formDefinition: FORM_DEF });
+  logInfo("[Component]: render", { args: props, logLevel: REACT_SIMPLE_FORM.LOGGING.logLevel });
+  
+  const { getFieldValue, setFieldValue } = useSimpleFormState({ fullQualifiedName, formDefinition });
 
   return (
     <Stack>
       <p>{DESC}</p>
+      <Cluster>
+        <input type="button" value="Trace root state" style={{ padding: "0.5em 1em" }}
+          onClick={() => console.log("state", getGlobalState(""))} />
 
-      <label htmlFor="text_input">Text input</label>
+        <input type="button" value="Trace subscriptions" style={{ padding: "0.5em 1em" }}
+          onClick={() => console.log("subscriptions", REACT_SIMPLE_STATE.ROOT_STATE.subscriptions)} />
 
-      <input id="text_input"
-        value={getFormFieldValue(formState, "obj1.text1") || ""}
-        onChange={e => setFormFieldValue(formState, "obj1.text1", e.target.value, true)}
-      />
+        <input type="button" value="Trace contexts" style={{ padding: "0.5em 1em" }}
+          onClick={() => console.log("contexts", REACT_SIMPLE_STATE.CONTEXTS)} />
 
-      <input id="text_input_copy"
-        value={getFormFieldValue(formState, "obj1.text1") || ""}
-        onChange={e => setFormFieldValue(formState, "obj1.text1", e.target.value, true)}
-      />
+        <input type="button" value="Validate form" style={{ padding: "0.5em 1em" }}
+          onClick={() => console.log("errors", validateSimpleForm(fullQualifiedName)?.errorsFlatList)} />
+      </Cluster>
+
+      <Cluster>
+        <label htmlFor="text_input">Text input</label>
+        <input id="text_input"
+          // Field values are stored in global state and we can access that in different ways.
+          value={getFieldValue("obj1.text1") || ""} // controlled input
+          onChange={e => setFieldValue("obj1.text1", e.target.value)}
+        />
+      </Cluster>
+
+      <Cluster>
+        <label htmlFor="text_input">Text input copy</label>
+        <input id="text_input_copy"
+        // We cannot use <StateContext fullQualifiedNamePrefix={fullQualifiedName} /> here since functions cannot access React.context.
+          value={getGlobalState(`${fullQualifiedName}.obj1.text1`) || ""} // controlled input
+          onChange={e => setGlobalState(`${fullQualifiedName}.obj1.text1`, e.target.value)}
+        />
+      </Cluster>
     </Stack>
   );
 };
@@ -64,7 +85,7 @@ const Template: SC = args => <Component {...args} />;
 
 export const Default: SC = Template.bind({});
 
-const meta: Meta<typeof useFormState> = {
+const meta: Meta = {
   component: Component,
   title: TITLE,
   args: {
