@@ -7,12 +7,12 @@ import { SimpleFormValidationOptions } from "./types";
 import { REACT_SIMPLE_FORM } from "data";
 import { SimpleFormState } from "form/instance";
 
-export function validateSimpleForm<Schema extends FieldTypes = any>(
+export function validateSimpleForm<FormSchema extends FieldTypes = any>(
   fullQualifiedName: string,
   options?: SimpleFormValidationOptions & {
     updateState?: boolean // default is 'true' and form errors will be set in global state
   }
-): ObjectValidationResult<Schema> {
+): ObjectValidationResult<FormSchema> {
   const formState = getGlobalState<SimpleFormState>(fullQualifiedName);
 
   if (!formState) {

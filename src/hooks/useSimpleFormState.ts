@@ -1,19 +1,20 @@
 import { useEffect, useMemo } from "react";
-import { ValueOrCallbackWithArgs, deepCopyObject, logTrace, stringAppend } from "@react-simple/react-simple-util";
+import { ValueOrCallbackWithArgs, logTrace, stringAppend } from "@react-simple/react-simple-util";
 import { getChildMemberValue } from "@react-simple/react-simple-mapping";
 import { SetGlobalStateOptions, UseGlobalStateProps, setGlobalState, useGlobalState } from "@react-simple/react-simple-state";
-import {
-  FieldTypes, ObjectValidationResult, getEmptyObjectValidationResult, mergeFieldValidationOptions
-} from "@react-simple/react-simple-validation";
+import { FieldTypes, ObjectValidationResult } from "@react-simple/react-simple-validation";
 import {
   SimpleFormDefinition, SimpleFormInstance, SimpleFormOptions, SimpleFormState, SimpleFormValidationOptions, validateSimpleForm 
 } from "form";
 import { REACT_SIMPLE_FORM } from "data";
+import { getDefaultSimpleFormState } from "form/instance/functions";
 
 // A form is just a sub-tree in global state which is validated and bound to inputs.
-// Therefore useFormState() uses useGlobalState() to implement its features.
+// Therefore useSimpleFormState() hook just uses the useGlobalState() hook to implement its features.
 // Components can subscribe to change in the entire form, subsections or single inputs only by using 
 // the updateFilter of global state.
+
+// The useSimpleFormState() hook must be called at least once in some root component to initialize the form state, but it's idempotent.
 
 export type UseSimpleFormStateProps<FormSchema extends FieldTypes = any, FormData extends object = object>
   = Omit<UseGlobalStateProps<SimpleFormState<FormSchema, FormData>>, "defaultState">
@@ -49,20 +50,11 @@ export function useSimpleFormState<FormSchema extends FieldTypes = any, FormData
   const { formDefinition, options, ...globalStateProps } = props;
   const { fullQualifiedName } = props;
 
-  const defaultFormState = useMemo<SimpleFormState<FormSchema, FormData>>(
-    () => ({
-      $form: {
-        formName: formDefinition.formName,
-        fullQualifiedName,
-        formDefinition,
-        formSchema: deepCopyObject(formDefinition.formSchema),
-        options: mergeFieldValidationOptions(formDefinition.options || {}, options || {})
-      },
-      $errors: getEmptyObjectValidationResult()
-    }),
+  const defaultFormState = useMemo(
+    () => getDefaultSimpleFormState(fullQualifiedName, formDefinition, options),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [fullQualifiedName, formDefinition]);
-
+  
   // calling the hook here ensures that this component gets updated when the form at fullQualifiedName changes,
   // or when any of its parent or child state nodes change (like fields)
   const [formState, setFormState] = useGlobalState<SimpleFormState<FormSchema, FormData>>({
@@ -99,7 +91,7 @@ export function useSimpleFormState<FormSchema extends FieldTypes = any, FormData
     []);
   
   logTrace(
-    `[useFormState] ${formDefinition.formName}`,
+    `[useSimpleFormState] ${formDefinition.formName}`,
     {
       args: { props, formState },
       logLevel: REACT_SIMPLE_FORM.LOGGING.logLevel

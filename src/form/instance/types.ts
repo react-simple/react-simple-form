@@ -1,4 +1,4 @@
-import { ObjectValidationResult, FieldTypes } from "@react-simple/react-simple-validation";
+import { ObjectValidationResult, FieldTypes, ObjectFieldType } from "@react-simple/react-simple-validation";
 import { SimpleFormDefinition, SimpleFormDefinitionOptions } from "form/definition";
 import { SimpleFormValidationOptions } from "form/validation";
 
@@ -19,7 +19,7 @@ export interface SimpleFormInstance<FormSchema extends FieldTypes = any, FormDat
   readonly fullQualifiedName: string;
   readonly formDefinition: SimpleFormDefinition<FormSchema, FormData>;
 
-  readonly formSchema: FormSchema; // schema of the instance, inputs will be automatically registered, if not present
+  readonly formSchema: ObjectFieldType<FormSchema>; // schema of the instance, inputs will be automatically registered, if not present  
   readonly options?: SimpleFormOptions<FormSchema, FormData>;
 }
 
@@ -27,7 +27,7 @@ export interface SimpleFormInstance<FormSchema extends FieldTypes = any, FormDat
 // fullQualifiedName specifies where the form data is stored in global state.
 // We add these members to that state node to store the form state.
 // Since form data and form errors are stored in global state update filter logic can be applied to those.
-export interface SimpleFormState<Schema extends FieldTypes = any, Data extends object = object> {
-  readonly $form: SimpleFormInstance<Schema, Data>;
-  readonly $errors: ObjectValidationResult<Schema>;
+export interface SimpleFormState<FormSchema extends FieldTypes = any, FormData extends object = object> {
+  readonly $form: SimpleFormInstance<FormSchema, FormData>;
+  readonly $errors: ObjectValidationResult<FormSchema>;
 }

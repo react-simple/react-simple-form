@@ -6,7 +6,7 @@ import { Cluster, Stack } from "@react-simple/react-simple-ui";
 import { SimpleFormDefinition, validateSimpleForm } from "form";
 import { REACT_SIMPLE_FORM } from "data";
 import { REACT_SIMPLE_STATE, getGlobalState, setGlobalState } from "@react-simple/react-simple-state";
-import { useSimpleFormState } from "hooks";
+import { useSimpleFormField, useSimpleFormState } from "hooks";
 
 const TITLE = "useFormState / Manually binding inputs";
 const DESC = <>Inputs are manually bound by setting value and onBlur/onChange attributes.</>;
@@ -39,8 +39,19 @@ const Component = (props: ComponentProps) => {
   // this is not a state, in real app we only set it once at the beginning
   REACT_SIMPLE_FORM.LOGGING.logLevel = props.logLevel;
   logInfo("[Component]: render", { args: props, logLevel: REACT_SIMPLE_FORM.LOGGING.logLevel });
-  
+    
+  // using the whole form will update the component on any changes
   const { getFieldValue, setFieldValue } = useSimpleFormState({ fullQualifiedName, formDefinition });
+
+  // using a single field will update the component only if that field gets changed
+  const field = useSimpleFormField<string>({
+    fullQualifiedName: {
+      form: fullQualifiedName,
+      field: "obj1.text1"
+    }
+  });
+
+  console.log(field);
 
   return (
     <Stack>
@@ -59,8 +70,8 @@ const Component = (props: ComponentProps) => {
           onClick={() => console.log("errors", validateSimpleForm(fullQualifiedName)?.errorsFlatList)} />
       </Cluster>
 
+      <label htmlFor="text_input">Text input - useSimpleFormState.setFieldValue()</label>
       <Cluster>
-        <label htmlFor="text_input">Text input</label>
         <input id="text_input"
           // Field values are stored in global state and we can access that in different ways.
           value={getFieldValue("obj1.text1") || ""} // controlled input
@@ -68,12 +79,21 @@ const Component = (props: ComponentProps) => {
         />
       </Cluster>
 
+      <label htmlFor="text_input">Text input - setGlobalState()</label>
       <Cluster>
-        <label htmlFor="text_input">Text input copy</label>
-        <input id="text_input_copy"
-        // We cannot use <StateContext fullQualifiedNamePrefix={fullQualifiedName} /> here since functions cannot access React.context.
+        <input id="text_input_2"
+          // We cannot use <StateContext fullQualifiedNamePrefix={fullQualifiedName} /> here since functions cannot access React.context.
           value={getGlobalState(`${fullQualifiedName}.obj1.text1`) || ""} // controlled input
           onChange={e => setGlobalState(`${fullQualifiedName}.obj1.text1`, e.target.value)}
+        />
+      </Cluster>
+
+      <label htmlFor="text_input">Text input - useSimpleFormField.setValue()</label>
+      <Cluster>
+        <input id="text_input_3"
+          // We cannot use <StateContext fullQualifiedNamePrefix={fullQualifiedName} /> here since functions cannot access React.context.
+          value={field.value || ""} // controlled input
+          onChange={e => field.setValue(e.target.value)}
         />
       </Cluster>
     </Stack>
